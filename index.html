@@ -64,7 +64,8 @@ input[type=range]{padding:0;accent-color:var(--red);width:90px}
 /* calendar */
 .cal{display:grid;grid-template-columns:repeat(auto-fill,minmax(460px,1fr));gap:18px;align-items:start}
 .cal-m{background:var(--surface);border:1px solid var(--line);border-top:2px solid var(--line-strong);padding:16px 18px 18px;min-width:0;font-size:11.5px}
-.cal-m h3{font:500 18px var(--f-display);margin:0 0 14px}
+.cal-m h3{font:500 18px var(--f-display);margin:0 0 14px;display:flex;justify-content:space-between;align-items:baseline}
+.cal-m h3 span{font:400 10px var(--f-mono);color:var(--muted)}
 .cal-day{display:grid;grid-template-columns:54px 64px minmax(0,1fr);gap:10px;padding:5px 0;line-height:1.4;border-top:1px dotted var(--line);align-items:baseline}
 .cal-day .n{font:400 10px var(--f-mono);color:var(--muted);white-space:nowrap}
 .cal-m .pill{font-size:8px;padding:1px 6px;letter-spacing:.06em}
@@ -136,7 +137,7 @@ h3.sub{font:500 20px var(--f-display);margin:20px 0 8px}
     <div class="bar">
       <div class="chips" id="brands" role="group" aria-label="Titles"></div>
       <label class="f" id="monthWrap">Month <select id="month"></select></label>
-      <label class="f" id="typeWrap" hidden>Show <select id="type"><option value="all">On sale and events</option><option value="sale">Print on sale</option><option value="ev">Events</option></select></label>
+      <label class="f" id="typeWrap" hidden>Show <select id="type"><option value="all">Booking deadlines and events</option><option value="dl">Booking deadlines</option><option value="ev">Events</option></select></label>
       <label class="f">Sell-in lead <input type="range" id="sw" min="2" max="12" step="1" value="6"><b class="mono" id="swv">6 wks</b></label>
     </div>
     <div id="view"></div>
@@ -504,6 +505,22 @@ const DATA = {
  ],
  "events": [
   {
+   "id": "wy26",
+   "brand": "Events",
+   "title": "Glamour Women of the Year (WOTY) \u00b7 Cape Town",
+   "month": "2026-11",
+   "tbc": true,
+   "note": "Held in Cape Town"
+  },
+  {
+   "id": "mo26",
+   "brand": "Events",
+   "title": "GQ Man of the Year (MOTY) \u00b7 Johannesburg",
+   "month": "2026-12",
+   "tbc": true,
+   "note": "Held in Johannesburg"
+  },
+  {
    "id": "cth",
    "brand": "Events",
    "title": "Cape Town Jazz Festival",
@@ -630,7 +647,7 @@ function entries(){
   });
   return E.sort((a,b)=>a.d-b.d);
 }
-const TT = {sale:'On sale', dl:'Ad deadline', sb:'Sell by', ev:'Event'};
+const TT = {sale:'On sale', dl:'Booking deadline', sb:'Sell by', ev:'Event'};
 
 function pill(b){ return '<span class="pill" data-b="'+b+'">'+(b==='HG'?'H&amp;G':b)+'</span>'; }
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
@@ -642,7 +659,7 @@ function renderNext(){
   if (!up.length){ el.innerHTML=''; return; }
   el.innerHTML = up.map((x,i)=>{
     const dd = dayDiff(D0,x.deadline);
-    return '<div><b>'+(i===0?'Next ad deadline':'Then')+'</b><span class="t">'+pill(x.brand)+' '+esc(x.issue.issue)+'</span><span class="m">'+fmt(x.deadline)+' · <span class="'+(dd<=21?'hot':'')+'">'+dd+' days</span> · on sale '+fmt(x.onsale,false)+'</span></div>';
+    return '<div><b>'+(i===0?'Next booking deadline':'Then')+'</b><span class="t">'+pill(x.brand)+' '+esc(x.issue.issue)+'</span><span class="m">'+fmt(x.deadline)+' · <span class="'+(dd<=21?'hot':'')+'">'+dd+' days</span> · on sale '+fmt(x.onsale,false)+'</span></div>';
   }).join('');
 }
 
@@ -657,7 +674,7 @@ function renderMonthly(){
     const inM = t => E.filter(e=>e.t===t && mkey(e.d)===k);
     const sale = inM('sale'), dl = inM('dl'), sb = inM('sb'), ev = inM('ev');
     const sec = (title, L) => L.length ? '<section><h4>'+title+'</h4>'+monthRows(L)+'</section>' : '';
-    const body = sec('Selling now (sell by this month)', sb)+sec('Ad deadlines', dl)+sec('On sale', sale)+sec('Events', ev);
+    const body = sec('Selling now (sell by this month)', sb)+sec('Booking deadlines', dl)+sec('On sale', sale)+sec('Events', ev);
     if (!body) return '';
     return '<article class="month"><h3>'+mlabelF(k)+'<span>'+(sale.length+dl.length+ev.length)+' dates</span></h3>'+body+'</article>';
   }).join('') + '</div>';
@@ -665,12 +682,12 @@ function renderMonthly(){
 
 /* ---------- calendar ---------- */
 function renderCalendar(){
-  const E = entries().filter(e => (e.t==='sale' || e.t==='ev') && (S.type==='all' || e.t===S.type));
+  const E = entries().filter(e => (e.t==='dl' || e.t==='ev') && (S.type==='all' || e.t===S.type));
   const list = S.month==='all' ? MONTHS : [S.month];
   document.getElementById('view').innerHTML = '<div class="cal">' + list.map(k=>{
     const rows = E.filter(e=>mkey(e.d)===k);
-    return '<article class="cal-m"><h3>'+mlabelF(k)+'</h3>'+(rows.length?rows.map(e=>
-      '<div class="cal-day" tabindex="0"><span class="n">'+(e.est?'~':'')+fmt(e.d,false)+'</span><span>'+pill(e.x.brand)+'</span><span><span class="tag '+e.t+'">'+(e.t==='sale'?'On sale':'Event')+'</span> '+esc(e.txt)+'</span></div>').join(''):'<div class="none">No dates</div>')+'</article>';
+    return '<article class="cal-m"><h3>'+mlabelF(k)+(rows.length?'<span>'+rows.length+(rows.length===1?' date':' dates')+'</span>':'')+'</h3>'+(rows.length?rows.map(e=>
+      '<div class="cal-day" tabindex="0"><span class="n">'+(e.est?'~':'')+fmt(e.d,false)+'</span><span>'+pill(e.x.brand)+'</span><span><span class="tag '+e.t+'">'+(e.t==='dl'?'Booking deadline':'Event')+'</span> '+esc(e.txt)+'</span></div>').join(''):'<div class="none">No dates</div>')+'</article>';
   }).join('') + '</div>';
 }
 
@@ -686,7 +703,7 @@ function renderPipeline(){
       add(x.planning,x.brand,'pn','Planning',n);
       add(x.cover,x.brand,'pn','Cover approval',n);
       add(x.sellBy,x.brand,'sb','Sell by',n);
-      add(x.deadline,x.brand,'dl','Ad deadline',n);
+      add(x.deadline,x.brand,'dl','Booking deadline',n);
       add(x.onsale,x.brand,'sale','On sale',n);
     } else {
       add(x.sellBy,x.brand,'sb','Sell by',x.label,true);
@@ -705,7 +722,7 @@ function renderPipeline(){
     html += '</tr>';
   });
   html += '</tbody></table></div>';
-  html += '<div class="legend"><span><span class="tag">Planning</span> and cover approval</span><span><span class="tag">Sell by</span> = ad deadline minus the sell-in lead</span><span><span class="tag dl">Ad deadline</span></span><span><span class="tag sale">On sale</span></span><span><span class="tag ev">Event</span> (~ mid-month estimate)</span></div>';
+  html += '<div class="legend"><span><span class="tag">Planning</span> and cover approval</span><span><span class="tag">Sell by</span> = booking deadline minus the sell-in lead</span><span><span class="tag dl">Booking deadline</span></span><span><span class="tag sale">On sale</span></span><span><span class="tag ev">Event</span> (~ mid-month estimate)</span></div>';
   document.getElementById('view').innerHTML = html;
 }
 
@@ -720,7 +737,7 @@ function status(dl){
 function renderLead(){
   const its = items();
   const pr = its.filter(x=>x.kind==='print').sort((a,b)=>a.deadline-b.deadline).filter(x=>S.month==='all'||mkey(x.deadline)===S.month||mkey(x.onsale)===S.month);
-  let html = '<div class="tw"><table><thead><tr><th>Title</th><th>Issue</th><th>Planning</th><th>Cover approval</th><th>Sell by</th><th>Ad deadline</th><th>Advertorial in</th><th>Inserts due</th><th>On sale</th><th class="n">Plan to deadline</th><th class="n">Deadline to on sale</th><th>Status</th></tr></thead><tbody>';
+  let html = '<div class="tw"><table><thead><tr><th>Title</th><th>Issue</th><th>Planning</th><th>Cover approval</th><th>Sell by</th><th>Booking deadline</th><th>Advertorial in</th><th>Inserts due</th><th>On sale</th><th class="n">Plan to deadline</th><th class="n">Deadline to on sale</th><th>Status</th></tr></thead><tbody>';
   html += pr.map(x=>'<tr><td>'+pill(x.brand)+'</td><td>'+esc(x.issue.issue)+(x.issue.theme?' <span class="tag">'+esc(x.issue.theme)+'</span>':'')+'</td><td class="mono">'+fmt(x.planning)+'</td><td class="mono">'+fmt(x.cover)+(x.coverFlag?' <span class="tag" title="Printed with the year 2022 in the PDF">check</span>':'')+'</td><td class="mono sellby">'+fmt(x.sellBy)+'</td><td class="mono"><b>'+fmt(x.deadline)+'</b></td><td class="mono">'+fmt(x.adv)+'</td><td class="mono">'+fmt(x.inserts)+'</td><td class="mono">'+fmt(x.onsale)+'</td><td class="mono n">'+Math.round(dayDiff(x.planning,x.deadline)/7)+' wks</td><td class="mono n">'+Math.round(dayDiff(x.deadline,x.onsale)/7)+' wks</td><td>'+status(x.deadline)+'</td></tr>').join('');
   if (!pr.length) html += '<tr><td colspan="12" class="none">No print issues for this selection.</td></tr>';
   html += '</tbody></table></div>';
@@ -735,9 +752,9 @@ function renderLead(){
 /* ---------- chrome ---------- */
 const VIEWS = {
   monthly:{t:'Monthly plan', d:'What to sell, what closes and what goes on sale each month, for each title. Sell-by dates move with the sell-in lead setting.', r:renderMonthly, month:true},
-  calendar:{t:'Calendar', d:'What is happening each month: print editions going on sale and events, by title. Ad deadlines and sell-by dates are on the Monthly plan.', r:renderCalendar, month:true, type:true},
-  pipeline:{t:'Pipeline', d:'Everything to do each month, by brand: planning, cover approval, sell-by, ad deadlines, on-sale dates and events.', r:renderPipeline, month:false},
-  lead:{t:'Lead time', d:'The production dates a rep needs per issue, sorted by ad deadline, with how many weeks each stage gives you.', r:renderLead, month:true}
+  calendar:{t:'Calendar', d:'What is happening each month: booking deadlines and events by brand, to show how busy each brand is and where the load builds. On-sale and sell-by dates are on the Monthly plan.', r:renderCalendar, month:true, type:true},
+  pipeline:{t:'Pipeline', d:'Everything to do each month, by brand: planning, cover approval, sell-by, booking deadlines, on-sale dates and events.', r:renderPipeline, month:false},
+  lead:{t:'Lead time', d:'The production dates a rep needs per issue, sorted by booking deadline, with how many weeks each stage gives you.', r:renderLead, month:true}
 };
 function chrome(){
   const nav = document.getElementById('nav');
@@ -763,7 +780,7 @@ function draw(){
   document.getElementById('typeWrap').hidden = !v.type;
   document.getElementById('next').innerHTML='';
   v.r();
-  document.getElementById('foot').innerHTML = '<b>Reading the dates.</b> Sell by = ad deadline minus the sell-in lead set above (default 6 weeks), a planning rule and not a Condé Nast date. Event dates are mid-month estimates (~) until confirmed. Issue dates come from the Pre-lim 1 schedules and may change when the final schedules are issued.'
+  document.getElementById('foot').innerHTML = '<b>Reading the dates.</b> Sell by = booking deadline minus the sell-in lead set above (default 6 weeks), a planning rule and not a Condé Nast date. Event dates are mid-month estimates (~) until confirmed. Issue dates come from the Pre-lim 1 schedules and may change when the final schedules are issued.'
     + (DATA.fixes.length ? ' <b>Check:</b> '+DATA.fixes.map(esc).join('; ')+'.' : '');
 }
 chrome(); draw();
